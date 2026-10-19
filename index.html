@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Studio Vidéo IA</title>
+  <style>
+    body { font-family: system-ui; background:#f5f7fb; margin:0; padding:20px; }
+    .box { max-width:700px; margin:auto; background:#fff; padding:24px; border-radius:16px; box-shadow:0 2px 10px rgba(0,0,0,.08); }
+    h1 { font-size:24px; }
+    textarea, input { width:100%; padding:12px; border:1px solid #ccc; border-radius:10px; margin:8px 0; box-sizing:border-box; }
+    button { background:#2563eb; color:#fff; border:0; padding:12px 20px; border-radius:10px; cursor:pointer; }
+    button:disabled { background:#9ca3af; cursor:not-allowed; }
+    .result { background:#f3f4f6; padding:16px; border-radius:10px; white-space:pre-wrap; margin-top:16px; }
+    .lang { display:flex; gap:8px; margin-bottom:16px; }
+    .lang button { background:#e5e7eb; color:#111; }
+    .lang button.active { background:#2563eb; color:#fff; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1>🎬 Studio Vidéo IA</h1>
+    <p>استوديو الفيديو بالذكاء الاصطناعي</p>
+
+    <div class="lang">
+      <button id="btnFr" class="active" onclick="setLang('fr')">Français</button>
+      <button id="btnAr" onclick="setLang('ar')">العربية</button>
+    </div>
+
+    <label>Votre clé Gemini / مفتاح Gemini</label>
+    <input id="apiKey" type="password" placeholder="Collez votre clé API ici" />
+
+    <label>Proverbe, sujet ou idée / مثل، موضوع أو فكرة</label>
+    <textarea id="idea" rows="4" placeholder="Exemple : Qui sème le vent récolte la tempête"></textarea>
+
+    <button id="genBtn" onclick="generatePrompt()">Générer le prompt / إنشاء البرومبت</button>
+
+    <div id="status"></div>
+    <div id="result" class="result" style="display:none"></div>
+  </div>
+
+<script>
+  let lang = "fr";
+
+  function setLang(l) {
+    lang = l;
+    document.getElementById("btnFr").classList.toggle("active", l === "fr");
+    document.getElementById("btnAr").classList.toggle("active", l === "ar");
+    document.body.dir = l === "ar" ? "rtl" : "ltr";
+  }
+
+  async function generatePrompt() {
+    const key = document.getElementById("apiKey").value.trim();
+    const idea = document.getElementById("idea").value.trim();
+    const status = document.getElementById("status");
+    const result = document.getElementById("result");
+    const btn = document.getElementById("genBtn");
+
+    if (!key || idea.length < 3) {
+      status.innerText = lang === "ar"
+        ? "أدخل المفتاح والفكرة."
+        : "Entrez la clé et votre idée.";
+      return;
+    }
+
+    status.innerText = lang === "ar" ? "جارٍ الإنشاء…" : "Génération en cours…";
+    btn.disabled = true;
+    result.style.display = "none";
+
+    const instruction = `
+Tu es un expert en prompts pour vidéos IA.
+Transforme cette idée en UN prompt vidéo professionnel EN ANGLAIS.
+Inclus : sujet, décor, personnage, action, caméra, lumière, ambiance, style cinématographique, 4K.
+Réponds uniquement par le prompt final.
+Idée : "${idea}"
+Langue de l'utilisateur : ${lang}
+`;
+
+    try {
+      const response = await fetch(
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": key
+          },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: instruction }] }]
+          })
+        }
+      );
+
+      const data = await response.json();
+      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+      if (!text) throw new Error("Réponse vide");
+
+      result.innerText = text.trim();
+      result.style.display = "block";
+      status.innerText = lang === "ar" ? "تم إنشاء البرومبت ✔" : "Prompt généré ✔";
+    } catch (e) {
+      status.innerText = lang === "ar"
+        ? "حدث خطأ. تحقق من المفتاح."
+        : "Erreur. Vérifiez votre clé API.";
+    } finally {
+      btn.disabled = false;
+    }
+  }
+</script>
+</body>
+</html>
