@@ -12,6 +12,7 @@
     button { background:#2563eb; color:#fff; border:0; padding:12px 20px; border-radius:10px; cursor:pointer; }
     button:disabled { background:#9ca3af; cursor:not-allowed; }
     .result { background:#f3f4f6; padding:16px; border-radius:10px; white-space:pre-wrap; margin-top:16px; }
+    .error { background:#fee2e2; color:#991b1b; padding:16px; border-radius:10px; margin-top:16px; white-space:pre-wrap; }
     .lang { display:flex; gap:8px; margin-bottom:16px; }
     .lang button { background:#e5e7eb; color:#111; }
     .lang button.active { background:#2563eb; color:#fff; }
@@ -36,6 +37,7 @@
     <button id="genBtn" onclick="generatePrompt()">Générer le prompt / إنشاء البرومبت</button>
 
     <div id="status"></div>
+    <div id="error" class="error" style="display:none"></div>
     <div id="result" class="result" style="display:none"></div>
   </div>
 
@@ -53,8 +55,12 @@
     const key = document.getElementById("apiKey").value.trim();
     const idea = document.getElementById("idea").value.trim();
     const status = document.getElementById("status");
+    const errorBox = document.getElementById("error");
     const result = document.getElementById("result");
     const btn = document.getElementById("genBtn");
+
+    errorBox.style.display = "none";
+    result.style.display = "none";
 
     if (!key || idea.length < 3) {
       status.innerText = lang === "ar"
@@ -65,7 +71,6 @@
 
     status.innerText = lang === "ar" ? "جارٍ الإنشاء…" : "Génération en cours…";
     btn.disabled = true;
-    result.style.display = "none";
 
     const instruction = `
 Tu es un expert en prompts pour vidéos IA.
@@ -92,17 +97,31 @@ Langue de l'utilisateur : ${lang}
       );
 
       const data = await response.json();
+
+      if (!response.ok) {
+        const message =
+          data?.error?.message ||
+          JSON.stringify(data);
+
+        throw new Error(message);
+      }
+
       const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
 
-      if (!text) throw new Error("Réponse vide");
+      if (!text) {
+        throw new Error("Réponse Gemini vide : " + JSON.stringify(data));
+      }
 
       result.innerText = text.trim();
       result.style.display = "block";
-      status.innerText = lang === "ar" ? "تم إنشاء البرومبت ✔" : "Prompt généré ✔";
-    } catch (e) {
       status.innerText = lang === "ar"
-        ? "حدث خطأ. تحقق من المفتاح."
-        : "Erreur. Vérifiez votre clé API.";
+        ? "تم إنشاء البرومبت ✔"
+        : "Prompt généré ✔";
+
+    } catch (e) {
+      status.innerText = "";
+      errorBox.innerText = "Erreur : " + (e.message || e);
+      errorBox.style.display = "block";
     } finally {
       btn.disabled = false;
     }
