@@ -16,6 +16,8 @@
     .lang { display:flex; gap:8px; margin-bottom:16px; }
     .lang button { background:#e5e7eb; color:#111; }
     .lang button.active { background:#2563eb; color:#fff; }
+    .videoBtn { background:#16a34a; margin-top:16px; }
+    .note { font-size:14px; color:#555; margin-top:8px; }
   </style>
 </head>
 <body>
@@ -39,8 +41,17 @@
     <div id="status"></div>
     <div id="error" class="error" style="display:none"></div>
     <div id="result" class="result" style="display:none"></div>
+
+    <div id="videoSection" style="display:none">
+      <button class="videoBtn" onclick="openVideoGenerator()">
+        🎬 Générer la vidéo / إنشاء الفيديو
+      </button>
+      <p class="note">
+        Le prompt est copié automatiquement. Colle-le dans Hugging Face, puis clique sur Generate.
+      </p>
+    </div>
   </div>
-<div id="videoSection" style="display:none; margin-top:20px;"> <button id="videoBtn" onclick="openVideoGenerator()"> 🎬 Générer la vidéo / إنشاء الفيديو </button> <p style="font-size:14px; color:#555; margin-top:8px;"> Le prompt sera copié automatiquement. Colle-le dans Hugging Face, puis clique sur Generate. </p> </div>
+
 <script>
   let lang = "fr";
 
@@ -57,10 +68,12 @@
     const status = document.getElementById("status");
     const errorBox = document.getElementById("error");
     const result = document.getElementById("result");
+    const videoSection = document.getElementById("videoSection");
     const btn = document.getElementById("genBtn");
 
     errorBox.style.display = "none";
     result.style.display = "none";
+    videoSection.style.display = "none";
 
     if (!key || idea.length < 3) {
       status.innerText = lang === "ar"
@@ -99,10 +112,7 @@ Langue de l'utilisateur : ${lang}
       const data = await response.json();
 
       if (!response.ok) {
-        const message =
-          data?.error?.message ||
-          JSON.stringify(data);
-
+        const message = data?.error?.message || JSON.stringify(data);
         throw new Error(message);
       }
 
@@ -114,6 +124,8 @@ Langue de l'utilisateur : ${lang}
 
       result.innerText = text.trim();
       result.style.display = "block";
+      videoSection.style.display = "block";
+
       status.innerText = lang === "ar"
         ? "تم إنشاء البرومبت ✔"
         : "Prompt généré ✔";
@@ -125,6 +137,15 @@ Langue de l'utilisateur : ${lang}
     } finally {
       btn.disabled = false;
     }
+  }
+
+  function openVideoGenerator() {
+    const prompt = document.getElementById("result").innerText;
+    navigator.clipboard.writeText(prompt);
+    window.open(
+      "https://huggingface.co/spaces/Wan-AI/Wan2.2-T2V-A14B",
+      "_blank"
+    );
   }
 </script>
 </body>
